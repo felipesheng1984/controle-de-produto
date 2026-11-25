@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Produtos</title>
+<link rel="stylesheet" href="produtos.css">
+<style>
+  .main { padding: 28px 32px; }
+  .page-head { margin-bottom: 18px; }
+  .page-head h1 { font-size: 26px; }
+  .page-head .subtitle { font-size: 13px; margin-top: 4px; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .btn-sm { padding: 9px 16px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-ghost { background: var(--card); color: var(--fg); border: 1px solid var(--border); box-shadow: var(--shadow); }
+  .btn-ghost:hover { background: var(--secondary); border-color: var(--primary); color: var(--secondary-fg); }
+  .btn-primary { box-shadow: var(--shadow); }
+  [hidden] { display: none !important; }
+  .filterbox { display: inline-flex; align-items: center; gap: 6px; }
+  .filterbox .flabel { font-size: 13px; font-weight: 600; color: var(--muted-fg); }
+  .filterbox select { padding: 8px 10px; font-size: 14px; border: 1px solid var(--border);
+    border-radius: 8px; background: var(--card); cursor: pointer; box-shadow: var(--shadow); outline: none; }
+  .filterbox select:focus { border-color: var(--primary); }
+
+  /* Cartão que envolve a tabela */
+  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: var(--shadow); overflow: hidden; }
+  /* largura minima legivel por coluna; se nao couber, aparece barra horizontal */
+  .grid-wrap { overflow-x: auto; }
+  table.grid { border-collapse: collapse; width: max-content; min-width: 100%; table-layout: fixed; }
+  table.grid th, table.grid td { padding: 0; overflow: hidden;
+    border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+  table.grid th:last-child, table.grid td:last-child { border-right: none; }
+  table.grid tbody tr:last-child td { border-bottom: none; }
+  table.grid thead th {
+    background: #f4f7f5; font-weight: 700; font-size: 13px; color: var(--fg);
+    text-align: center; padding: 10px 6px; position: relative; line-height: 1.2;
+  }
+  table.grid tbody tr:hover td { background: rgba(45,138,71,.045); }
+  table.grid col.grip { width: 26px; }
+  table.grid col.txt { width: 108px; }
+  table.grid col.ppl { width: 145px; }
+  table.grid col.chk { width: 112px; }
+  table.grid col.act { width: 58px; }
+  .cell-in {
+    width: 100%; min-width: 0; border: none; background: transparent; font: inherit;
+    font-size: 14px; color: var(--fg); padding: 10px 8px; outline: none; text-align: center;
+  }
+  .cell-in:focus { background: rgba(45,138,71,.08); }
+  .txtcell { font-style: italic; color: #374151; }
+  input.datecell { text-align: center; cursor: pointer; }
+
+  /* coluna do punho de arrastar linha */
+  th.grip-h { background: #f4f7f5; }
+  td.rgrip-cell { text-align: center; }
+  .rgrip { cursor: grab; color: #cbd5e1; font-size: 13px; user-select: none; letter-spacing: -2px; }
+  .rgrip:hover { color: var(--primary); }
+  #body tr.row-dragging td { opacity: .45; }
+  #body tr.drop-top td { box-shadow: inset 0 3px 0 var(--primary); }
+  #body tr.drop-bottom td { box-shadow: inset 0 -3px 0 var(--primary); }
+
+  /* célula de pessoas (op) */
+  td.pplcell { cursor: pointer; text-align: center; padding: 8px; font-size: 13px; }
+  td.pplcell:hover { background: rgba(45,138,71,.07); }
+  .ppl-names { color: var(--fg); }
+  .ppl-add { color: var(--muted-fg); font-style: italic; }
+  .chip { display: inline-block; background: var(--secondary); color: var(--secondary-fg);
+    border-radius: 9999px; padding: 1px 9px; font-size: 12px; font-weight: 600; margin: 1px; }
+
+  /* cabeçalho arrastável */
+  thead th.chk { cursor: grab; }
+  thead th.chk.dragging { opacity: .4; }
+  thead th.chk.drop-left  { box-shadow: inset 3px 0 0 var(--primary); }
+  thead th.chk.drop-right { box-shadow: inset -3px 0 0 var(--primary); }
+  thead .hname {
+    border: none; background: transparent; font: inherit; font-weight: 700; font-size: 13px;
+    text-align: center; color: var(--fg); width: 100%; min-width: 0; outline: none; padding: 1px 7px;
+  }
+  thead .hname:focus { background: rgba(45,138,71,.12); border-radius: 5px; }
+  .hdel { position: absolute; top: 4px; right: 3px; width: 16px; height: 16px; line-height: 14px;
+    border: none; background: transparent; color: #cbd5e1; cursor: pointer; font-size: 12px; border-radius: 4px; }
+  thead th:hover .hdel { color: var(--destructive); }
+  .hdel:hover { background: #fee2e2; }
+  .htype { position: absolute; top: 4px; left: 3px; width: 17px; height: 17px; line-height: 15px;
+    border: none; background: transparent; color: #94a3b8; cursor: pointer; font-size: 11px; border-radius: 4px; }
+  .htype:hover { background: var(--secondary); color: var(--primary); }
+
+  td.chkcell { text-align: center; cursor: pointer; user-select: none; }
+  td.chkcell:hover { background: rgba(45,138,71,.09); }
+  td.chkcell .mark { display: inline-block; min-width: 1em; font-size: 17px; color: var(--primary); font-weight: 800; line-height: 40px; }
+  td.actcell { text-align: center; white-space: nowrap; }
+  td.actcell button { border: none; background: transparent; cursor: pointer; font-size: 14px; padding: 5px; border-radius: 6px; position: relative; }
+  td.actcell .b-photo { color: #64748b; }
+  td.actcell .b-photo:hover { background: var(--secondary); color: var(--primary); }
+  td.actcell .b-del { color: #cbd5e1; }
+  td.actcell .b-del:hover { color: var(--destructive); background: #fee2e2; }
+  .fcount { position: absolute; top: -2px; right: -2px; background: var(--primary); color: #fff;
+    border-radius: 9999px; font-size: 9px; font-weight: 700; min-width: 13px; height: 13px; line-height: 13px; padding: 0 2px; }
+  th.act-h { background: #f4f7f5; }
+  .empty { text-align: center; color: var(--muted-fg); padding: 32px; font-size: 14px; }
+
+  /* ==== Estatísticas ==== */
+  .cycle-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .cycle-bar button { border: 1px solid var(--border); background: var(--card); border-radius: 8px;
+    width: 38px; height: 38px; font-size: 16px; cursor: pointer; box-shadow: var(--shadow); }
+  .cycle-bar button:hover { background: var(--secondary); border-color: var(--primary); }
+  .cycle-label { font-size: 16px; font-weight: 700; }
+  .cycle-range { font-size: 12px; color: var(--muted-fg); }
+  table.tbl { width: 100%; border-collapse: collapse; }
+  table.tbl th, table.tbl td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  table.tbl th { color: var(--muted-fg); font-weight: 600; font-size: 13px; background: #f4f7f5; }
+  table.tbl td.num { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  table.tbl tr:last-child td { border-bottom: none; }
+  .bar { display: inline-block; height: 8px; background: var(--primary); border-radius: 4px; vertical-align: middle; margin-left: 8px; }
+
+  /* ==== Relatório mensal ==== */
+  .rep-sheet { background: #fff; border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: var(--shadow); padding: 0 0 26px; overflow: hidden; }
+  .rep-head { background: var(--primary); color: #fff; padding: 20px 26px; display: flex;
+    align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .rep-head .rh-brand { font-size: 13px; font-weight: 700; letter-spacing: 2px; opacity: .85; }
+  .rep-head .rh-title { font-size: 22px; font-weight: 800; margin-top: 2px; }
+  .rep-head .rh-right { text-align: right; font-size: 12px; line-height: 1.7; opacity: .95; }
+  .rep-head .rh-period { font-size: 15px; font-weight: 700; }
+  .rep-body { padding: 22px 26px 0; }
+  .rep-sec { margin-top: 26px; break-inside: avoid; }
+  .rep-sec > h2 { font-size: 15px; font-weight: 800; color: var(--fg); margin-bottom: 10px;
+    padding-bottom: 6px; border-bottom: 2px solid var(--primary); }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .kpi { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; background: #fafcfb; }
+  .kpi .k-lbl { font-size: 11px; font-weight: 700; color: var(--muted-fg); text-transform: uppercase; letter-spacing: .5px; }
+  .kpi .k-val { font-size: 30px; font-weight: 800; color: var(--primary); line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .kpi .k-dif { font-size: 11px; font-weight: 700; }
+  .up { color: #16a34a; } .down { color: var(--destructive); } .flat { color: var(--muted-fg); }
+  .rep-sec table.tbl th, .rep-sec table.tbl td { padding: 7px 10px; font-size: 12.5px; }
+  /* colunas de número encolhem até o conteúdo; a 1ª coluna absorve a sobra
+     (senão o navegador espalha o espaço livre e abre buracos no meio) */
+  .rep-sec table.tbl th:not(:first-child), .rep-sec table.tbl td:not(:first-child)
+    { width: 1%; white-space: nowrap; }
+  .rep-sec table.tbl th:first-child, .rep-sec table.tbl td:first-child { width: auto; }
+  /* no detalhe o texto pode quebrar (coluna de itens/observações é longa) */
+  .rep-sec table.tbl.det th, .rep-sec table.tbl.det td { width: auto; white-space: normal; }
+  .rep-sec table.tbl tfoot td { font-weight: 800; background: #f4f7f5; border-top: 2px solid var(--primary); }
+  .barcell { display: flex; align-items: center; gap: 8px; }
+  .barcell .bt { flex: 0 0 auto; min-width: 26px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .barcell .bb { height: 9px; border-radius: 5px; background: var(--primary); }
+  .rep-empty { text-align: center; color: var(--muted-fg); padding: 40px; font-size: 14px; }
+  .det-itens { color: var(--muted-fg); font-size: 11.5px; }
+  .rep-foot { margin: 30px 26px 0; padding-top: 14px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; gap: 40px; }
+  .sign { flex: 1; text-align: center; font-size: 11.5px; color: var(--muted-fg); }
+  .sign .line { border-top: 1px solid #94a3b8; margin-bottom: 5px; height: 34px; }
+
+  /* impressão: só a folha do relatório, A4 retrato */
+  @media print {
+    @page { size: A4 portrait; margin: 12mm; }
+    body { background: #fff; }
+    .sidebar, .toolbar, .cycle-bar, .page-head, #view-coletas, #view-stats,
+    #view-analise, #view-pessoas, .modal-overlay, .no-print { display: none !important; }
+    .app, .main { display: block !important; padding: 0 !important; margin: 0 !important; }
+    .rep-sheet { border: none; border-radius: 0; box-shadow: none; padding: 0; }
+    .rep-head { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .kpi, .barcell .bb, .rep-sec table.tbl th, .rep-sec table.tbl tfoot td {
+      -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .rep-sec { break-inside: avoid; }
+    tr { break-inside: avoid; }
+  }
+
+  /* ==== Pessoas ==== */
+  .ppl-list { list-style: none; }
+  .ppl-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .ppl-list li:last-child { border-bottom: none; }
+  .ppl-list .del { border: none; background: transparent; color: #cbd5e1; cursor: pointer; font-size: 15px; padding: 4px 8px; border-radius: 6px; }
+  .ppl-list .del:hover { color: var(--destructive); background: #fee2e2; }
+
+  /* ==== modais ==== */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none;
+    align-items: center; justify-content: center; z-index: 60; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--card); border-radius: 14px; width: 100%; max-width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.3); padding: 22px; max-height: 88vh; overflow: auto; }
+  .modal.wide { max-width: 560px; }
+  .modal .mtitle { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
+  .modal input.txtin { width: 100%; padding: 10px 12px; font-size: 15px; margin-bottom: 14px;
+    border: 1px solid var(--input-border); border-radius: 8px; outline: none; }
+  .modal input.txtin:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(45,138,71,.15); }
+  .mtypes { display: flex; gap: 10px; margin-bottom: 18px; }
+  .tsel { flex: 1; padding: 14px 8px; border: 2px solid var(--border); border-radius: 10px;
+    background: var(--card); cursor: pointer; font-size: 14px; font-weight: 600; color: var(--fg);
+    display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .tsel .big { font-size: 22px; }
+  .tsel.active { border-color: var(--primary); background: var(--secondary); color: var(--secondary-fg); }
+  .mbtns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+  /* picker de pessoas */
+  .pick-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 16px; max-height: 46vh; overflow: auto; }
+  .pick-list label { display: flex; align-items: center; gap: 10px; padding: 9px 8px; border-radius: 8px; cursor: pointer; font-weight: 500; }
+  .pick-list label:hover { background: var(--secondary); }
+  .pick-list input { width: 17px; height: 17px; accent-color: var(--primary); }
+  .pick-empty { color: var(--muted-fg); font-size: 13px; padding: 8px 0 16px; }
+  /* galeria de fotos */
+  .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 10px; margin: 6px 0 16px; }
+  .photo-item { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); aspect-ratio: 1; }
+  .photo-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-item .rm { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,.55); color: #fff;
+    border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 13px; }
+  .photo-item .rm:hover { background: var(--destructive); }
+  .photo-empty { color: var(--muted-fg); font-size: 13px; padding: 10px 0 16px; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="name">Re-Teck</div>
+        <div class="sub" id="t_brand">Controle de Produtos</div>
+      </div>
+      <nav id="nav">
+        <a href="#" class="active" data-view="coletas"><span class="ico">📋</span><span id="t_navColetas">Coletas</span></a>
+        <a href="#" data-view="analise"><span class="ico">📈</span><span id="t_navAnalise">Análise</span></a>
+        <a href="#" data-view="stats"><span class="ico">📊</span><span id="t_navStats">Estatísticas</span></a>
+        <a href="#" data-view="relatorio"><span class="ico">📄</span><span id="t_navRel">Relatório</span></a>
+        <a href="#" data-view="pessoas"><span class="ico">👥</span><span id="t_navPessoas">Pessoas</span></a>
+      </nav>
+      <div class="foot">
+        <label id="t_langlbl">Idioma</label>
+        <select id="lang">
+          <option value="pt">Português</option>
+          <option value="zh">中文</option>
+        </select>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- ============ VIEW: COLETAS ============ -->
+      <section id="view-coletas">
+        <div class="page-head"><div>
+          <h1 id="t_title">Controle de Produtos</h1>
+          <div class="subtitle" id="t_sub">Escala de coletas — marque os itens com ✓.</div>
+        </div></div>
+        <div class="toolbar">
+          <button class="btn btn-primary btn-sm" id="b_row">➕ <span id="t_row">Nova coleta</span></button>
+          <button class="btn btn-ghost btn-sm" id="b_col">➕ <span id="t_col">Coluna</span></button>
+          <button class="btn btn-ghost btn-sm" id="b_xls">⬇️ <span id="t_xls">Excel</span></button>
+          <span class="filterbox">
+            <span class="flabel" id="t_flabel">公司</span>
+            <select id="empFilter"></select>
+          </span>
+          <span class="muted" id="status" style="align-self:center"></span>
+        </div>
+        <div class="table-card"><div class="grid-wrap">
+          <table class="grid">
+            <colgroup id="cols"></colgroup>
+            <thead><tr id="head"></tr></thead>
+            <tbody id="body"></tbody>
+          </table>
+        </div></div>
+      </section>
+
+      <!-- ============ VIEW: ESTATÍSTICAS ============ -->
+      <section id="view-stats" hidden>
+        <div class="page-head"><div>
+          <h1 id="t_stTitle">Estatísticas</h1>
+          <div class="subtitle" id="t_stSub">Viagens por pessoa (ciclo dia 16 → 15).</div>
+        </div></div>
+        <div class="cycle-bar">
+          <button id="cyPrev">◀</button>
+          <div><div class="cycle-label" id="cyLabel">—</div><div class="cycle-range" id="cyRange"></div></div>
+          <button id="cyNext">▶</button>
+        </div>
+        <div class="table-card"><table class="tbl">
+          <thead><tr><th id="t_stPerson">Pessoa</th><th style="text-align:right" id="t_stTrips">Viagens</th></tr></thead>
+          <tbody id="statsBody"></tbody>
+        </table></div>
+      </section>
+
+      <!-- ============ VIEW: ANÁLISE ============ -->
+      <section id="view-analise" hidden>
+        <div class="page-head"><div>
+          <h1 id="t_anTitle">Análise</h1>
+          <div class="subtitle" id="t_anSub">Itens recebidos por empresa (公司) ou por Gru.</div>
+        </div></div>
+        <div class="toolbar">
+          <button class="btn btn-primary btn-sm antoggle" id="anByEmp" data-by="empresa"><span id="t_anByEmp">Por empresa</span></button>
+          <button class="btn btn-ghost btn-sm antoggle" id="anByGru" data-by="gru"><span id="t_anByGru">Por Gru</span></button>
+        </div>
+        <div class="table-card"><div class="grid-wrap">
+          <table class="tbl" id="anTable"><thead id="anHead"></thead><tbody id="anBody"></tbody></table>
+        </div></div>
+      </section>
+
+      <!-- ============ VIEW: RELATÓRIO MENSAL ============ -->
+      <section id="view-relatorio" hidden>
+        <div class="page-head"><div>
+          <h1 id="t_reTitle">Relatório mensal</h1>
+          <div class="subtitle" id="t_reSub">Relatório do ciclo (dia 16 → 15) para a chefia.</div>
+        </div></div>
+        <div class="cycle-bar no-print">
+          <button id="rePrev">◀</button>
+          <div><div class="cycle-label" id="reLabel">—</div><div class="cycle-range" id="reRange"></div></div>
+          <button id="reNext">▶</button>
+          <button class="btn btn-primary btn-sm" id="rePrint" style="margin-left:10px;width:auto;height:auto">🖨️ <span id="t_rePrint">Exportar PDF</span></button>
+          <label class="filterbox" style="margin-left:6px"><input type="checkbox" id="reDet" checked style="accent-color:var(--primary)">
+            <span class="flabel" id="t_reDetLbl">Incluir detalhe</span></label>
+        </div>
+        <div class="rep-sheet" id="reSheet"></div>
+      </section>
+
+      <!-- ============ VIEW: PESSOAS ============ -->
+      <section id="view-pessoas" hidden>
+        <div class="page-head"><div>
+          <h1 id="t_pplTitle">Pessoas</h1>
+          <div class="subtitle" id="t_pplSub">Lista de pessoal (op) para as coletas.</div>
+        </div></div>
+        <div class="toolbar">
+          <input class="txtin" id="pplNewName" style="max-width:280px;margin:0" placeholder="Nome da pessoa…" autocomplete="off">
+          <button class="btn btn-primary btn-sm" id="pplAddBtn">➕ <span id="t_pplAdd">Adicionar</span></button>
+        </div>
+        <div class="table-card"><ul class="ppl-list" id="pplList"></ul></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal: nova coluna -->
+  <div class="modal-overlay" id="colModal" onclick="if(event.target===this)closeColModal()">
+    <div class="modal">
+      <div class="mtitle" id="m_title">Nova coluna</div>
+      <input id="colName" class="txtin" placeholder="Nome da coluna…" autocomplete="off">
+      <div class="mtypes">
+        <button class="tsel active" id="ts_check" data-t="check"><span class="big">✓</span><span id="m_check">Marcar</span></button>
+        <button class="tsel" id="ts_text" data-t="text"><span class="big">✎</span><span id="m_text">Texto</span></button>
+      </div>
+      <div class="mbtns">
+        <button class="btn btn-ghost btn-sm" id="colCancel">Cancelar</button>
+        <button class="btn btn-primary btn-sm" id="colOk">Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: escolher pessoas (op) da coleta -->
+  <div class="modal-overlay" id="pickModal" onclick="if(event.target===this)closePick()">
+    <div class="modal">
+      <div class="mtitle" id="m_pickTitle">Quem foi? (op)</div>
+      <div class="pick-list" id="pickList"></div>
+      <div class="mbtns">
+        <button class="btn btn-ghost btn-sm" id="pickCancel">Cancelar</button>
+        <button class="btn btn-primary btn-sm" id="pickSave">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: fotos da coleta -->
+  <div class="modal-overlay" id="photoModal" onclick="if(event.target===this)closePhotos()">
+    <div class="modal wide">
+      <div class="mtitle"><span id="m_photoTitle">Fotos</span> <span class="muted" id="photoCount"></span></div>
+      <div class="photo-grid" id="photoGrid"></div>
+      <input type="file" id="photoInput" accept="image/*" multiple hidden>
+      <div class="mbtns">
+        <button class="btn btn-ghost btn-sm" id="photoAdd">📷 <span id="m_addPhoto">Adicionar foto</span></button>
+        <button class="btn btn-primary btn-sm" id="photoClose">OK</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* Controle de Produtos — HTML/JS puro. Três abas: Coletas / Estatísticas / Pessoas. */
+const L = {
+  pt: { title:'Controle de Produtos', sub:'Escala de coletas — marque os itens com ✓.',
+        brand:'Controle de Produtos', langlbl:'Idioma',
+        navColetas:'Coletas', navStats:'Estatísticas', navAnalise:'Análise', navPessoas:'Pessoas', navRel:'Relatório',
+        reTitle:'Relatório mensal', reSub:'Relatório do ciclo (dia 16 → 15) para a chefia.',
+        rePrint:'Exportar PDF', reDetLbl:'Incluir detalhe',
+        reDoc:'Relatório Mensal de Coletas', rePeriod:'Período', reGen:'Emitido em', reCycle:'Ciclo',
+        reKColetas:'Coletas', reKEmpresas:'Empresas', reKPessoas:'Pessoas em campo', reKItens:'Itens coletados',
+        reVsPrev:'vs. ciclo anterior', reSecEmp:'1. Por empresa (公司)', reSecGru:'2. Por Gru',
+        reSecItem:'3. Por item coletado', reSecPpl:'4. Viagens por pessoa', reSecDet:'5. Detalhe das coletas',
+        reCol:'Coletas', reItens:'Itens', rePrev:'Anterior', reVar:'Var.', reShare:'% das coletas',
+        reTotal:'TOTAL', reNone:'Sem coletas neste ciclo.', reBlank:'(sem)',
+        reSignPrep:'Preparado por', reSignAppr:'Aprovado por',
+        reDate:'Data', reEmp:'Empresa', reGru:'Gru', reCity:'Cidade', rePpl:'Pessoas', reItemsCol:'Itens marcados',
+        anTitle:'Análise', anSub:'Itens recebidos por empresa (公司) ou por Gru.',
+        anByEmp:'Por empresa', anByGru:'Por Gru', anGroup:'Empresa', anGroupGru:'Gru',
+        anTotal:'Total coletas', anEmpty:'Sem dados. Preencha empresa/Gru e marque itens nas coletas.', anBlank:'(sem)',
+        row:'Nova coleta', col:'Coluna', xls:'Excel', empresa:'Empresa', gru:'Gru', cidade:'Cidade', data:'Data', ppl:'Pessoas (op)',
+        flabel:'Empresa', fAll:'Todas', empAdd:'+ empresa',
+        empty:'Nenhuma coleta ainda. Clique em "Nova coleta".',
+        delCol:'Excluir esta coluna e todos os dados dela?',
+        mTitle:'Nova coluna', mCheck:'Marcar (打勾)', mText:'Texto (备注)',
+        mName:'Nome da coluna…', mCancel:'Cancelar', mAdd:'Adicionar',
+        dragHint:'Arraste para reordenar', dragRow:'Arraste para mover a linha',
+        typeCheck:'Coluna de marcar (✓). Clique para mudar para texto.',
+        typeText:'Coluna de texto (✎). Clique para mudar para marcar.',
+        delRow:'Excluir esta coleta?', saved:'Salvo ✓',
+        pickTitle:'Quem foi? (op)', pickAdd:'+ escolher pessoas', save:'Salvar',
+        noPeople:'Nenhuma pessoa cadastrada. Vá em "Pessoas" e adicione.',
+        photos:'Fotos', addPhoto:'Adicionar foto', maxPhotos:'Máximo de 10 fotos por coleta.',
+        noPhotos:'Sem fotos ainda. Clique em "Adicionar foto".', delPhoto:'Remover esta foto?',
+        stTitle:'Estatísticas', stSub:'Viagens por pessoa (ciclo dia 16 → dia 15).',
+        stPerson:'Pessoa', stTrips:'Viagens', stEmpty:'Nenhuma pessoa cadastrada.', stTotal:'Total no ciclo',
+        pplTitle:'Pessoas', pplSub:'Lista de pessoal (op) para as coletas.',
+        pplAdd:'Adicionar', pplName:'Nome da pessoa…', pplEmpty:'Nenhuma pessoa. Adicione uma acima.',
+        delPessoa:'Excluir esta pessoa? (sai das coletas e das estatísticas)',
+        err:'Falha. Confirme que o programa está aberto.' },
+  zh: { title:'產品控制', sub:'收貨排程 — 用 ✓ 勾選項目。',
+        brand:'產品控制', langlbl:'語言',
+        navColetas:'收貨', navStats:'統計', navAnalise:'分析', navPessoas:'人員', navRel:'月報表',
+        reTitle:'月報表', reSub:'給主管看的週期報告（16 號 → 次月 15 號）。',
+        rePrint:'匯出 PDF', reDetLbl:'含明細',
+        reDoc:'每月收貨報告', rePeriod:'期間', reGen:'產生時間', reCycle:'週期',
+        reKColetas:'總收貨趟數', reKEmpresas:'公司數', reKPessoas:'出勤人數', reKItens:'收回品項數',
+        reVsPrev:'與上一週期比', reSecEmp:'一、依公司（公司）', reSecGru:'二、依 Gru',
+        reSecItem:'三、依品項', reSecPpl:'四、每人出差次數', reSecDet:'五、收貨明細',
+        reCol:'趟數', reItens:'品項', rePrev:'上期', reVar:'增減', reShare:'佔總趟數',
+        reTotal:'總計', reNone:'這個週期沒有任何收貨紀錄。', reBlank:'(空白)',
+        reSignPrep:'製表人', reSignAppr:'主管核准',
+        reDate:'日期', reEmp:'公司', reGru:'群組', reCity:'城市', rePpl:'人員', reItemsCol:'勾選的品項',
+        anTitle:'分析', anSub:'各公司或各 Gru 收到的物品分析。',
+        anByEmp:'依公司', anByGru:'依 Gru', anGroup:'公司', anGroupGru:'Gru',
+        anTotal:'總收貨數', anEmpty:'還沒有資料。請在收貨表填公司/Gru 並勾選物品。', anBlank:'(空白)',
+        row:'新增一筆', col:'欄位', xls:'Excel', empresa:'公司', gru:'群組', cidade:'城市', data:'日期', ppl:'人員(op)',
+        flabel:'公司', fAll:'全部', empAdd:'+ 公司',
+        empty:'還沒有任何資料，請按「新增一筆」。',
+        delCol:'刪除這個欄位以及它所有的資料嗎？',
+        mTitle:'新增欄位', mCheck:'打勾', mText:'填字（备注）',
+        mName:'欄位名稱…', mCancel:'取消', mAdd:'新增',
+        dragHint:'拖曳可調整順序', dragRow:'拖曳可移動此列',
+        typeCheck:'打勾欄（✓）。點一下改成填字。',
+        typeText:'填字欄（✎）。點一下改成打勾。',
+        delRow:'刪除這一筆嗎？', saved:'已儲存 ✓',
+        pickTitle:'誰去了？(op)', pickAdd:'+ 選擇人員', save:'儲存',
+        noPeople:'還沒有人員，請到「人員」分頁新增。',
+        photos:'照片', addPhoto:'新增照片', maxPhotos:'每筆最多 10 張照片。',
+        noPhotos:'還沒有照片，請按「新增照片」。', delPhoto:'刪除這張照片嗎？',
+        stTitle:'統計', stSub:'每人出差次數（週期 16 號 → 次月 15 號）。',
+        stPerson:'人員', stTrips:'出差次數', stEmpty:'還沒有人員。', stTotal:'週期總次數',
+        pplTitle:'人員', pplSub:'給收貨使用的人員(op)名單。',
+        pplAdd:'新增', pplName:'人員姓名…', pplEmpty:'還沒有人員，請在上方新增。',
+        delPessoa:'刪除這個人嗎？（會從收貨和統計移除）',
+        err:'失敗，請確認程式已開啟。' }
+};
+let lang = localStorage.getItem('cp_lang') || 'pt';
+document.getElementById('lang').value = lang;
+function d(){ return L[lang]; }
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function applyLang(){
+  const t=d(), set=(id,v)=>{const e=document.getElementById(id); if(e) e.textContent=v;};
+  set('t_title',t.title); set('t_sub',t.sub); set('t_brand',t.brand); set('t_langlbl',t.langlbl);
+  set('t_navColetas',t.navColetas); set('t_navStats',t.navStats); set('t_navAnalise',t.navAnalise); set('t_navPessoas',t.navPessoas);
+  set('t_navRel',t.navRel); set('t_reTitle',t.reTitle); set('t_reSub',t.reSub);
+  set('t_rePrint',t.rePrint); set('t_reDetLbl',t.reDetLbl);
+  set('t_anTitle',t.anTitle); set('t_anSub',t.anSub); set('t_anByEmp',t.anByEmp); set('t_anByGru',t.anByGru);
+  set('t_row',t.row); set('t_col',t.col); set('t_xls',t.xls); set('t_flabel',t.flabel);
+  set('m_title',t.mTitle); set('m_check',t.mCheck); set('m_text',t.mText);
+  set('colCancel',t.mCancel); set('colOk',t.mAdd);
+  set('m_pickTitle',t.pickTitle); set('pickCancel',t.mCancel); set('pickSave',t.save);
+  set('m_photoTitle',t.photos); set('m_addPhoto',t.addPhoto);
+  set('t_stTitle',t.stTitle); set('t_stSub',t.stSub); set('t_stPerson',t.stPerson); set('t_stTrips',t.stTrips);
+  set('t_pplTitle',t.pplTitle); set('t_pplSub',t.pplSub); set('t_pplAdd',t.pplAdd);
+  document.getElementById('colName').placeholder=t.mName;
+  document.getElementById('pplNewName').placeholder=t.pplName;
+  document.title=t.title;
+  document.documentElement.lang = lang==='zh'?'zh-TW':'pt-BR';
+}
+let statusTimer=null;
+function flash(msg,isErr){ const el=document.getElementById('status'); if(!el) return;
+  el.textContent=msg; el.style.color=isErr?'var(--destructive)':'var(--primary)';
+  clearTimeout(statusTimer); statusTimer=setTimeout(()=>el.textContent='',1500);
+}
+async function api(url,opts){
+  const r=await fetch(url,Object.assign({headers:{'Content-Type':'application/json'}},opts));
+  if(!r.ok) throw new Error('http '+r.status);
+  const x=await r.text(); return x?JSON.parse(x):{};
+}
+
+let STATE={colunas:[],coletas:[],pessoas:[]};
+
+/* ---------------- Navegação entre abas ---------------- */
+function showView(name){
+  document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('active',a.dataset.view===name));
+  document.getElementById('view-coletas').hidden = name!=='coletas';
+  document.getElementById('view-stats').hidden   = name!=='stats';
+  document.getElementById('view-analise').hidden = name!=='analise';
+  document.getElementById('view-pessoas').hidden = name!=='pessoas';
+  document.getElementById('view-relatorio').hidden = name!=='relatorio';
+  if(name==='coletas') load();
+  if(name==='relatorio') loadReport();
+  if(name==='stats')   loadStats();
+  if(name==='analise') loadAnalysis();
+  if(name==='pessoas') loadPessoas();
+}
+document.querySelectorAll('#nav a').forEach(a=>{
+  a.onclick=e=>{ e.preventDefault(); showView(a.dataset.view); };
+});
+
+/* ---------------- COLETAS ---------------- */
+async function load(){
+  try{ STATE=await api('/api/state'); render(); }
+  catch(e){ document.getElementById('body').innerHTML=`<tr><td class="empty" colspan="99"><span class="msg err">${d().err}</span></td></tr>`; }
+}
+function pessoaNome(id){ const p=STATE.pessoas.find(x=>x.id===id); return p?p.nome:'?'; }
+
+let empFilter=''; // '' = todas
+function fillEmpFilter(){
+  const sel=document.getElementById('empFilter'); const t=d();
+  const vals=[...new Set(STATE.coletas.map(c=>(c.empresa||'').trim()).filter(v=>v))].sort((a,b)=>a.localeCompare(b));
+  if(empFilter && !vals.includes(empFilter)) empFilter='';
+  sel.innerHTML=`<option value="">${esc(t.fAll)}</option>`+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  sel.value=empFilter;
+}
+function render(){
+  const t=d();
+  fillEmpFilter();
+  const rows = empFilter ? STATE.coletas.filter(c=>(c.empresa||'').trim()===empFilter) : STATE.coletas;
+  document.getElementById('cols').innerHTML =
+    `<col class="grip"><col class="txt"><col class="txt"><col class="txt"><col class="txt"><col class="ppl">`
+    + STATE.colunas.map(()=>`<col class="chk">`).join('') + `<col class="act">`;
+  const head=document.getElementById('head');
+  let h = `<th class="grip-h"></th><th class="txt">${esc(t.empresa)}</th><th class="txt">${esc(t.gru)}</th><th class="txt">${esc(t.cidade)}</th>`
+        + `<th class="txt">${esc(t.data)}</th><th class="ppl">${esc(t.ppl)}</th>`;
+  STATE.colunas.forEach(c=>{
+    const isTxt=c.type==='text', tIcon=isTxt?'✎':'✓', tTitle=isTxt?t.typeText:t.typeCheck;
+    h += `<th class="chk" draggable="true" data-colid="${c.id}" title="${esc(t.dragHint)}">`
+       + `<button class="htype" title="${esc(tTitle)}" data-typecol="${c.id}" data-type="${c.type}">${tIcon}</button>`
+       + `<input class="hname" draggable="false" value="${esc(c.name)}" data-col="${c.id}">`
+       + `<button class="hdel" title="✕" data-delcol="${c.id}">✕</button></th>`;
+  });
+  h += `<th class="act-h"></th>`;
+  head.innerHTML=h;
+
+  const body=document.getElementById('body');
+  if(!rows.length){
+    body.innerHTML=`<tr><td class="empty" colspan="${STATE.colunas.length+7}">${esc(t.empty)}</td></tr>`;
+  } else {
+    body.innerHTML = rows.map(row=>{
+      const set=new Set(row.checks||[]); const txt=row.texts||{}; const ppl=row.pessoas||[];
+      const pplHtml = ppl.length
+        ? `<span class="ppl-names">${ppl.map(id=>`<span class="chip">${esc(pessoaNome(id))}</span>`).join('')}</span>`
+        : `<span class="ppl-add">${esc(t.pickAdd)}</span>`;
+      let cells = `<td class="rgrip-cell"><span class="rgrip" draggable="true" title="${esc(t.dragRow)}">⠿</span></td>`
+        + `<td><input class="cell-in" data-row="${row.id}" data-f="empresa" value="${esc(row.empresa||'')}"></td>`
+        + `<td><input class="cell-in" data-row="${row.id}" data-f="gru" value="${esc(row.gru)}"></td>`
+        + `<td><input class="cell-in" data-row="${row.id}" data-f="cidade" value="${esc(row.cidade)}"></td>`
+        + `<td><input type="date" class="cell-in datecell" data-row="${row.id}" data-f="data" value="${esc(row.data)}"></td>`
+        + `<td class="pplcell" data-row="${row.id}">${pplHtml}</td>`;
+      STATE.colunas.forEach(c=>{
+        if(c.type==='text'){
+          cells += `<td><input class="cell-in txtcell" data-row="${row.id}" data-col="${c.id}" value="${esc(txt[c.id]||'')}"></td>`;
+        } else {
+          cells += `<td class="chkcell" data-row="${row.id}" data-col="${c.id}"><span class="mark">${set.has(c.id)?'✓':''}</span></td>`;
+        }
+      });
+      const fc = row.fotos>0 ? `<span class="fcount">${row.fotos}</span>` : '';
+      cells += `<td class="actcell">`
+        + `<button class="b-photo" data-photo="${row.id}" title="${esc(t.photos)}">📷${fc}</button>`
+        + `<button class="b-del" data-delrow="${row.id}" title="✕">🗑</button></td>`;
+      return `<tr data-rowid="${row.id}">${cells}</tr>`;
+    }).join('');
+  }
+  wire();
+}
+
+function wire(){
+  document.querySelectorAll('.cell-in[data-f]').forEach(inp=>{
+    inp.onchange=async()=>{
+      const row=STATE.coletas.find(r=>r.id===inp.dataset.row); if(!row) return;
+      const campo=inp.dataset.f; row[campo]=inp.value;
+      try{ await api('/api/coletas/update',{method:'POST',body:JSON.stringify({id:row.id,empresa:row.empresa||'',gru:row.gru,cidade:row.cidade,data:row.data})}); flash(d().saved); }
+      catch(e){ flash(d().err,true); }
+      if(campo==='empresa') render(); // atualiza o filtro de公司
+    };
+    if(inp.type!=='date') inp.onkeydown=e=>{ if(e.key==='Enter') inp.blur(); };
+  });
+  document.querySelectorAll('.txtcell').forEach(inp=>{
+    inp.onchange=async()=>{
+      try{ await api('/api/cell',{method:'POST',body:JSON.stringify({coletaId:inp.dataset.row,colunaId:inp.dataset.col,valor:inp.value})}); flash(d().saved); }
+      catch(e){ flash(d().err,true); }
+    };
+    inp.onkeydown=e=>{ if(e.key==='Enter') inp.blur(); };
+  });
+  document.querySelectorAll('.chkcell').forEach(td=>{
+    td.onclick=async()=>{
+      const mark=td.querySelector('.mark');
+      try{ const r=await api('/api/toggle',{method:'POST',body:JSON.stringify({coletaId:td.dataset.row,colunaId:td.dataset.col})});
+        mark.textContent=r.marcado?'✓':''; }
+      catch(e){ flash(d().err,true); }
+    };
+  });
+  document.querySelectorAll('.pplcell').forEach(td=>{ td.onclick=()=>openPick(td.dataset.row); });
+  document.querySelectorAll('[data-photo]').forEach(b=>{ b.onclick=()=>openPhotos(b.dataset.photo); });
+  document.querySelectorAll('[data-typecol]').forEach(b=>{
+    b.onclick=async()=>{ const novo=b.dataset.type==='text'?'check':'text';
+      try{ await api('/api/colunas/type',{method:'POST',body:JSON.stringify({id:b.dataset.typecol,type:novo})}); await load(); }catch(e){ flash(d().err,true); } };
+  });
+  // arrastar coluna
+  let dragId=null;
+  document.querySelectorAll('th.chk').forEach(th=>{
+    th.ondragstart=e=>{ dragId=th.dataset.colid; th.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',dragId); };
+    th.ondragend=()=>{ dragId=null; document.querySelectorAll('th.chk').forEach(x=>x.classList.remove('dragging','drop-left','drop-right')); };
+    th.ondragover=e=>{ if(!dragId||th.dataset.colid===dragId) return; e.preventDefault();
+      const r=th.getBoundingClientRect(); const after=(e.clientX-r.left)>r.width/2;
+      th.classList.toggle('drop-right',after); th.classList.toggle('drop-left',!after); };
+    th.ondragleave=()=>{ th.classList.remove('drop-left','drop-right'); };
+    th.ondrop=async e=>{ e.preventDefault(); const targetId=th.dataset.colid; if(!dragId||dragId===targetId) return;
+      const r=th.getBoundingClientRect(); const after=(e.clientX-r.left)>r.width/2;
+      const ids=STATE.colunas.map(c=>c.id).filter(id=>id!==dragId);
+      let idx=ids.indexOf(targetId); if(after) idx++; ids.splice(idx,0,dragId);
+      try{ await api('/api/colunas/reorder',{method:'POST',body:JSON.stringify({ids})}); await load(); }catch(err){ flash(d().err,true); } };
+  });
+  // arrastar linha
+  let dragRowId=null;
+  document.querySelectorAll('#body tr[data-rowid]').forEach(tr=>{
+    const grip=tr.querySelector('.rgrip');
+    if(grip){
+      grip.ondragstart=e=>{ dragRowId=tr.dataset.rowid; tr.classList.add('row-dragging'); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',dragRowId); };
+      grip.ondragend=()=>{ dragRowId=null; document.querySelectorAll('#body tr').forEach(x=>x.classList.remove('row-dragging','drop-top','drop-bottom')); };
+    }
+    tr.ondragover=e=>{ if(!dragRowId||tr.dataset.rowid===dragRowId) return; e.preventDefault();
+      const r=tr.getBoundingClientRect(); const below=(e.clientY-r.top)>r.height/2;
+      tr.classList.toggle('drop-bottom',below); tr.classList.toggle('drop-top',!below); };
+    tr.ondragleave=()=>{ tr.classList.remove('drop-top','drop-bottom'); };
+    tr.ondrop=async e=>{ e.preventDefault(); const targetId=tr.dataset.rowid; if(!dragRowId||dragRowId===targetId) return;
+      const r=tr.getBoundingClientRect(); const below=(e.clientY-r.top)>r.height/2;
+      const ids=STATE.coletas.map(c=>c.id).filter(id=>id!==dragRowId);
+      let idx=ids.indexOf(targetId); if(below) idx++; ids.splice(idx,0,dragRowId);
+      try{ await api('/api/coletas/reorder',{method:'POST',body:JSON.stringify({ids})}); await load(); }catch(err){ flash(d().err,true); } };
+  });
+  document.querySelectorAll('.hname').forEach(inp=>{
+    inp.onchange=async()=>{ try{ await api('/api/colunas/rename',{method:'POST',body:JSON.stringify({id:inp.dataset.col,name:inp.value})}); flash(d().saved); }catch(e){ flash(d().err,true); } };
+    inp.onkeydown=e=>{ if(e.key==='Enter') inp.blur(); };
+  });
+  document.querySelectorAll('[data-delcol]').forEach(b=>{
+    b.onclick=async()=>{ if(!confirm(d().delCol)) return; try{ await api('/api/colunas/remove',{method:'POST',body:JSON.stringify({id:b.dataset.delcol})}); await load(); }catch(e){ flash(d().err,true); } };
+  });
+  document.querySelectorAll('[data-delrow]').forEach(b=>{
+    b.onclick=async()=>{ if(!confirm(d().delRow)) return; try{ await api('/api/coletas/remove',{method:'POST',body:JSON.stringify({id:b.dataset.delrow})}); await load(); }catch(e){ flash(d().err,true); } };
+  });
+}
+
+// Botões da barra Coletas
+document.getElementById('b_row').onclick=async()=>{
+  try{ await api('/api/coletas',{method:'POST',body:JSON.stringify({empresa:empFilter||''})}); await load(); }
+  catch(e){ flash(d().err,true); }
+};
+document.getElementById('empFilter').onchange=e=>{ empFilter=e.target.value; render(); };
+document.getElementById('b_xls').onclick=()=>{ window.location='/api/export'; };
+document.getElementById('lang').onchange=e=>{ lang=e.target.value; localStorage.setItem('cp_lang',lang); applyLang();
+  const cur=document.querySelector('#nav a.active')?.dataset.view||'coletas'; showView(cur); };
+
+/* ---------------- Modal Nova coluna ---------------- */
+let colType='check';
+function openColModal(){ colType='check'; setTsel(); const inp=document.getElementById('colName'); inp.value=''; document.getElementById('colModal').classList.add('open'); setTimeout(()=>inp.focus(),50); }
+function closeColModal(){ document.getElementById('colModal').classList.remove('open'); }
+function setTsel(){ document.getElementById('ts_check').classList.toggle('active',colType==='check'); document.getElementById('ts_text').classList.toggle('active',colType==='text'); }
+document.getElementById('ts_check').onclick=()=>{ colType='check'; setTsel(); };
+document.getElementById('ts_text').onclick =()=>{ colType='text';  setTsel(); };
+document.getElementById('colCancel').onclick=closeColModal;
+async function addColuna(){ const nm=document.getElementById('colName').value.trim(); if(!nm) return;
+  try{ await api('/api/colunas',{method:'POST',body:JSON.stringify({name:nm,type:colType})}); closeColModal(); await load(); }catch(e){ flash(d().err,true); } }
+document.getElementById('colOk').onclick=addColuna;
+document.getElementById('colName').addEventListener('keydown',e=>{ if(e.key==='Enter') addColuna(); if(e.key==='Escape') closeColModal(); });
+document.getElementById('b_col').onclick=openColModal;
+
+/* ---------------- Modal Pessoas (op) da coleta ---------------- */
+let pickColetaId=null;
+function openPick(coletaId){
+  pickColetaId=coletaId;
+  const row=STATE.coletas.find(r=>r.id===coletaId); const sel=new Set(row?row.pessoas:[]);
+  const list=document.getElementById('pickList');
+  if(!STATE.pessoas.length){ list.innerHTML=`<div class="pick-empty">${esc(d().noPeople)}</div>`; }
+  else{
+    list.innerHTML=STATE.pessoas.map(p=>
+      `<label><input type="checkbox" value="${p.id}" ${sel.has(p.id)?'checked':''}><span>${esc(p.nome)}</span></label>`).join('');
+  }
+  document.getElementById('pickModal').classList.add('open');
+}
+function closePick(){ document.getElementById('pickModal').classList.remove('open'); pickColetaId=null; }
+document.getElementById('pickCancel').onclick=closePick;
+document.getElementById('pickSave').onclick=async()=>{
+  if(!pickColetaId) return closePick();
+  const ids=[...document.querySelectorAll('#pickList input:checked')].map(i=>i.value);
+  try{ await api('/api/coletas/pessoas',{method:'POST',body:JSON.stringify({coletaId:pickColetaId,pessoaIds:ids})}); closePick(); await load(); }
+  catch(e){ flash(d().err,true); }
+};
+
+/* ---------------- Modal Fotos ---------------- */
+let photoColetaId=null;
+async function openPhotos(coletaId){ photoColetaId=coletaId; document.getElementById('photoModal').classList.add('open'); await refreshPhotos(); }
+function closePhotos(){ document.getElementById('photoModal').classList.remove('open'); photoColetaId=null; load(); }
+async function refreshPhotos(){
+  const grid=document.getElementById('photoGrid'); const t=d();
+  try{
+    const list=await api('/api/photos?coletaId='+encodeURIComponent(photoColetaId));
+    document.getElementById('photoCount').textContent = list.length+'/10';
+    if(!list.length){ grid.innerHTML=`<div class="photo-empty" style="grid-column:1/-1">${esc(t.noPhotos)}</div>`; return; }
+    grid.innerHTML=list.map(f=>{
+      const url='/api/photos/file?coletaId='+encodeURIComponent(photoColetaId)+'&name='+encodeURIComponent(f.name);
+      return `<div class="photo-item"><img src="${url}" alt=""><button class="rm" data-rm="${esc(f.name)}" title="✕">✕</button></div>`;
+    }).join('');
+    grid.querySelectorAll('[data-rm]').forEach(b=>{ b.onclick=async()=>{
+      if(!confirm(t.delPhoto)) return;
+      await api('/api/photos/remove',{method:'POST',body:JSON.stringify({coletaId:photoColetaId,name:b.dataset.rm})});
+      await refreshPhotos();
+    };});
+  }catch(e){ grid.innerHTML=`<div class="photo-empty" style="grid-column:1/-1"><span class="msg err">${esc(t.err)}</span></div>`; }
+}
+document.getElementById('photoAdd').onclick=()=>document.getElementById('photoInput').click();
+document.getElementById('photoClose').onclick=closePhotos;
+document.getElementById('photoInput').onchange=async e=>{
+  const files=[...e.target.files]; e.target.value='';
+  for(const file of files){
+    const cur=await api('/api/photos?coletaId='+encodeURIComponent(photoColetaId));
+    if(cur.length>=10){ alert(d().maxPhotos); break; }
+    const fd=new FormData(); fd.append('coletaId',photoColetaId); fd.append('file',file);
+    try{ const r=await fetch('/api/photos',{method:'POST',body:fd}); if(!r.ok){ const j=await r.json().catch(()=>({})); alert(j.message||d().err); break; } }
+    catch(err){ flash(d().err,true); break; }
+  }
+  await refreshPhotos();
+};
+
+/* ---------------- ESTATÍSTICAS ---------------- */
+let cyYear=null, cyMonth=null; // mês em que começa o ciclo (dia 16)
+function initCycle(){
+  const now=new Date(); let y=now.getFullYear(), m=now.getMonth()+1;
+  if(now.getDate()<16){ m--; if(m<1){ m=12; y--; } } // antes do dia 16 => ciclo anterior
+  cyYear=y; cyMonth=m;
+}
+function pad(n){ return (n<10?'0':'')+n; }
+function cycleRange(){
+  const start=new Date(cyYear,cyMonth-1,16);
+  const end=new Date(cyYear,cyMonth,15); // dia 15 do mês seguinte
+  return {start,end};
+}
+async function loadStats(){
+  if(cyYear==null) initCycle();
+  const t=d(); const {start,end}=cycleRange();
+  document.getElementById('cyLabel').textContent = `${pad(cyMonth)}/${cyYear}`;
+  document.getElementById('cyRange').textContent = `${pad(start.getDate())}/${pad(start.getMonth()+1)}/${start.getFullYear()} → ${pad(end.getDate())}/${pad(end.getMonth()+1)}/${end.getFullYear()}`;
+  const tbody=document.getElementById('statsBody');
+  try{
+    const r=await api(`/api/stats?year=${cyYear}&month=${cyMonth}`);
+    const rows=r.pessoas||[];
+    if(!rows.length){ tbody.innerHTML=`<tr><td colspan="2" class="empty">${esc(t.stEmpty)}</td></tr>`; return; }
+    const max=Math.max(1,...rows.map(x=>x.count));
+    tbody.innerHTML = rows.map(p=>{
+      const w=Math.round((p.count/max)*140);
+      return `<tr><td>${esc(p.nome)}</td><td class="num">${p.count}${p.count>0?`<span class="bar" style="width:${w}px"></span>`:''}</td></tr>`;
+    }).join('')
+    + `<tr><td style="font-weight:700">${esc(t.stTotal)}</td><td class="num">${r.total}</td></tr>`;
+  }catch(e){ tbody.innerHTML=`<tr><td colspan="2" class="empty"><span class="msg err">${esc(t.err)}</span></td></tr>`; }
+}
+function shiftCycle(delta){ cyMonth+=delta; if(cyMonth>12){cyMonth=1;cyYear++;} if(cyMonth<1){cyMonth=12;cyYear--;} loadStats(); }
+document.getElementById('cyPrev').onclick=()=>shiftCycle(-1);
+document.getElementById('cyNext').onclick=()=>shiftCycle(1);
+
+/* ---------------- ANÁLISE ---------------- */
+let anBy='empresa';
+function setAnToggle(){
+  document.getElementById('anByEmp').classList.toggle('btn-primary',anBy==='empresa');
+  document.getElementById('anByEmp').classList.toggle('btn-ghost',anBy!=='empresa');
+  document.getElementById('anByGru').classList.toggle('btn-primary',anBy==='gru');
+  document.getElementById('anByGru').classList.toggle('btn-ghost',anBy!=='gru');
+}
+async function loadAnalysis(){
+  const t=d(); setAnToggle();
+  const head=document.getElementById('anHead'), body=document.getElementById('anBody');
+  try{
+    const r=await api('/api/analysis?by='+anBy);
+    const cols=r.colunas||[]; const grupos=(r.grupos||[]);
+    const groupLabel = anBy==='gru'?t.anGroupGru:t.anGroup;
+    head.innerHTML = `<tr><th>${esc(groupLabel)}</th>`
+      + cols.map(c=>`<th style="text-align:right">${esc(c.name)}</th>`).join('')
+      + `<th style="text-align:right">${esc(t.anTotal)}</th></tr>`;
+    if(!grupos.length){ body.innerHTML=`<tr><td class="empty" colspan="${cols.length+2}">${esc(t.anEmpty)}</td></tr>`; return; }
+    const maxTotal=Math.max(1,...grupos.map(g=>g.total));
+    body.innerHTML = grupos.map(g=>{
+      const w=Math.round((g.total/maxTotal)*120);
+      const cells = cols.map(c=>{ const n=g.counts[c.id]||0;
+        return `<td class="num">${n>0?n:'<span style="color:var(--muted-fg)">·</span>'}</td>`; }).join('');
+      return `<tr><td>${g.key?esc(g.key):('<span style="color:var(--muted-fg)">'+esc(t.anBlank)+'</span>')}</td>`
+        + cells
+        + `<td class="num">${g.total}<span class="bar" style="width:${w}px"></span></td></tr>`;
+    }).join('');
+  }catch(e){ body.innerHTML=`<tr><td class="empty" colspan="99"><span class="msg err">${esc(t.err)}</span></td></tr>`; }
+}
+document.getElementById('anByEmp').onclick=()=>{ anBy='empresa'; loadAnalysis(); };
+document.getElementById('anByGru').onclick=()=>{ anBy='gru'; loadAnalysis(); };
+
+/* ---------------- RELATÓRIO MENSAL ---------------- */
+/* Uma "folha" pronta para imprimir/salvar em PDF: cabeçalho Re-Teck, KPIs,
+   tabelas por empresa / Gru / item / pessoa e o detalhe do ciclo. */
+let reYear=null, reMonth=null;
+function br(iso){ if(!iso) return ''; const p=iso.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
+function variacao(cur,prev){
+  const t=d();
+  if(prev===0) return cur>0 ? `<span class="up">▲ novo</span>` : `<span class="flat">—</span>`;
+  const p=Math.round(((cur-prev)/prev)*100);
+  if(p===0) return `<span class="flat">= 0%</span>`;
+  return p>0 ? `<span class="up">▲ ${p}%</span>` : `<span class="down">▼ ${Math.abs(p)}%</span>`;
+}
+function kpi(lbl,val,cur,prev){
+  return `<div class="kpi"><div class="k-lbl">${esc(lbl)}</div><div class="k-val">${val}</div>`
+       + (prev===undefined?'':`<div class="k-dif">${variacao(cur,prev)} <span class="flat">${esc(d().reVsPrev)} (${prev})</span></div>`)
+       + `</div>`;
+}
+function barra(n,max){ const w=Math.round((n/Math.max(1,max))*90); // % da largura da célula
+  return `<div class="barcell"><span class="bt">${n}</span><span class="bb" style="width:${n>0?Math.max(w,2):0}%"></span></div>`; }
+
+/* Tabela grupo × itens (usada por empresa e por Gru) */
+function tabelaGrupo(grupos, cols, labelGrupo){
+  const t=d();
+  if(!grupos.length) return `<div class="rep-empty">${esc(t.reNone)}</div>`;
+  const max=Math.max(1,...grupos.map(g=>g.total));
+  const head=`<tr><th>${esc(labelGrupo)}</th><th style="min-width:150px">${esc(t.reCol)}</th>`
+    + cols.map(c=>`<th style="text-align:right">${esc(c.name)}</th>`).join('')
+    + `<th style="text-align:right">${esc(t.rePrev)}</th><th style="text-align:right">${esc(t.reVar)}</th></tr>`;
+  const body=grupos.map(g=>
+    `<tr><td>${g.key?esc(g.key):`<span class="flat">${esc(t.reBlank)}</span>`}</td>`
+    + `<td>${barra(g.total,max)}</td>`
+    + cols.map(c=>{const n=g.counts[c.id]||0; return `<td class="num">${n>0?n:'<span class="flat">·</span>'}</td>`;}).join('')
+    + `<td class="num" style="font-weight:500">${g.prevTotal}</td>`
+    + `<td class="num" style="font-weight:500">${variacao(g.total,g.prevTotal)}</td></tr>`).join('');
+  const tot=grupos.reduce((a,g)=>a+g.total,0), totPrev=grupos.reduce((a,g)=>a+g.prevTotal,0);
+  const foot=`<tr><td>${esc(t.reTotal)}</td><td class="num" style="text-align:left;padding-left:10px">${tot}</td>`
+    + cols.map(c=>`<td class="num">${grupos.reduce((a,g)=>a+(g.counts[c.id]||0),0)}</td>`).join('')
+    + `<td class="num">${totPrev}</td><td class="num">${variacao(tot,totPrev)}</td></tr>`;
+  return `<table class="tbl"><thead>${head}</thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table>`;
+}
+
+function renderReport(r){
+  const t=d(), cols=r.colunas||[], s=r.resumo;
+  const periodo=`${br(r.start)} → ${br(r.end)}`;
+  let h = `<div class="rep-head">
+      <div><div class="rh-brand">RE-TECK BRASIL</div><div class="rh-title">${esc(t.reDoc)}</div></div>
+      <div class="rh-right"><div class="rh-period">${esc(t.rePeriod)}: ${periodo}</div>
+        <div>${esc(t.reCycle)}: ${pad(r.month)}/${r.year} &nbsp;·&nbsp; ${esc(t.reGen)}: ${esc(r.geradoEm)}</div></div>
+    </div><div class="rep-body">`;
+
+  if(!s.totalColetas){
+    return h + `<div class="rep-empty">${esc(t.reNone)}</div></div>`;
+  }
+
+  h += `<div class="kpis">`
+    + kpi(t.reKColetas, s.totalColetas, s.totalColetas, s.prevColetas)
+    + kpi(t.reKEmpresas, s.empresas)
+    + kpi(t.reKPessoas, s.pessoas)
+    + kpi(t.reKItens, s.itens, s.itens, s.prevItens)
+    + `</div>`;
+
+  h += `<div class="rep-sec"><h2>${esc(t.reSecEmp)}</h2>${tabelaGrupo(r.porEmpresa,cols,t.reEmp)}</div>`;
+  h += `<div class="rep-sec"><h2>${esc(t.reSecGru)}</h2>${tabelaGrupo(r.porGru,cols,t.reGru)}</div>`;
+
+  // 3. por item
+  const itens=r.porItem||[];
+  if(itens.length){
+    const maxI=Math.max(1,...itens.map(x=>x.count));
+    h += `<div class="rep-sec"><h2>${esc(t.reSecItem)}</h2><table class="tbl">`
+      + `<thead><tr><th>${esc(t.reItens)}</th><th style="min-width:180px">${esc(t.reCol)}</th>`
+      + `<th style="text-align:right">${esc(t.reShare)}</th><th style="text-align:right">${esc(t.rePrev)}</th>`
+      + `<th style="text-align:right">${esc(t.reVar)}</th></tr></thead><tbody>`
+      + itens.map(x=>`<tr><td>${esc(x.name)}</td><td>${barra(x.count,maxI)}</td>`
+        + `<td class="num">${Math.round((x.count/s.totalColetas)*100)}%</td>`
+        + `<td class="num" style="font-weight:500">${x.prev}</td>`
+        + `<td class="num" style="font-weight:500">${variacao(x.count,x.prev)}</td></tr>`).join('')
+      + `</tbody></table></div>`;
+  }
+
+  // 4. por pessoa
+  const ppl=r.porPessoa||[];
+  if(ppl.length){
+    const maxP=Math.max(1,...ppl.map(x=>x.count));
+    h += `<div class="rep-sec"><h2>${esc(t.reSecPpl)}</h2><table class="tbl">`
+      + `<thead><tr><th>${esc(t.rePpl)}</th><th style="min-width:220px">${esc(t.reCol)}</th>`
+      + `<th style="text-align:right">${esc(t.rePrev)}</th><th style="text-align:right">${esc(t.reVar)}</th></tr></thead><tbody>`
+      + ppl.map(x=>`<tr><td>${esc(x.nome)}</td><td>${barra(x.count,maxP)}</td>`
+        + `<td class="num" style="font-weight:500">${x.prev}</td>`
+        + `<td class="num" style="font-weight:500">${variacao(x.count,x.prev)}</td></tr>`).join('')
+      + `</tbody></table></div>`;
+  }
+
+  // 5. detalhe (opcional)
+  if(document.getElementById('reDet').checked && (r.detalhe||[]).length){
+    h += `<div class="rep-sec" style="break-before:page"><h2>${esc(t.reSecDet)}</h2><table class="tbl det">`
+      + `<thead><tr><th>${esc(t.reDate)}</th><th>${esc(t.reEmp)}</th><th>${esc(t.reGru)}</th>`
+      + `<th>${esc(t.reCity)}</th><th>${esc(t.rePpl)}</th><th>${esc(t.reItemsCol)}</th></tr></thead><tbody>`
+      + r.detalhe.map(c=>{
+          const obs=(c.textos||[]).map(x=>`${x.name}: ${x.valor}`).join(' · ');
+          return `<tr><td>${esc(br(c.data))}</td><td>${esc(c.empresa||'')}</td><td>${esc(c.gru||'')}</td>`
+            + `<td>${esc(c.cidade||'')}</td><td>${esc((c.pessoas||[]).join(', '))}</td>`
+            + `<td class="det-itens">${esc((c.itens||[]).join(', '))}${obs?`<br><i>${esc(obs)}</i>`:''}</td></tr>`;
+        }).join('')
+      + `</tbody></table></div>`;
+  }
+
+  h += `</div><div class="rep-foot">`
+    + `<div class="sign"><div class="line"></div>${esc(t.reSignPrep)}</div>`
+    + `<div class="sign"><div class="line"></div>${esc(t.reSignAppr)}</div></div>`;
+  return h;
+}
+
+async function loadReport(){
+  if(reYear==null){ const now=new Date(); let y=now.getFullYear(), m=now.getMonth()+1;
+    if(now.getDate()<16){ m--; if(m<1){ m=12; y--; } } reYear=y; reMonth=m; }
+  const t=d(), sheet=document.getElementById('reSheet');
+  const start=new Date(reYear,reMonth-1,16), end=new Date(reYear,reMonth,15);
+  document.getElementById('reLabel').textContent=`${pad(reMonth)}/${reYear}`;
+  document.getElementById('reRange').textContent=
+    `${pad(start.getDate())}/${pad(start.getMonth()+1)}/${start.getFullYear()} → ${pad(end.getDate())}/${pad(end.getMonth()+1)}/${end.getFullYear()}`;
+  try{ sheet.innerHTML=renderReport(await api(`/api/report?year=${reYear}&month=${reMonth}`)); }
+  catch(e){ sheet.innerHTML=`<div class="rep-empty"><span class="msg err">${esc(t.err)}</span></div>`; }
+}
+document.getElementById('rePrev').onclick=()=>{ reMonth--; if(reMonth<1){reMonth=12;reYear--;} loadReport(); };
+document.getElementById('reNext').onclick=()=>{ reMonth++; if(reMonth>12){reMonth=1;reYear++;} loadReport(); };
+document.getElementById('reDet').onchange=loadReport;
+document.getElementById('rePrint').onclick=()=>window.print();
+
+/* ---------------- PESSOAS ---------------- */
+async function loadPessoas(){
+  const t=d(); const ul=document.getElementById('pplList');
+  try{
+    const list=await api('/api/pessoas');
+    if(!list.length){ ul.innerHTML=`<li class="empty" style="justify-content:center">${esc(t.pplEmpty)}</li>`; return; }
+    ul.innerHTML=list.map(p=>
+      `<li><input class="cell-in" style="text-align:left;max-width:320px" data-rename="${p.id}" value="${esc(p.nome)}">`
+      + `<button class="del" data-delp="${p.id}" title="✕">🗑</button></li>`).join('');
+    ul.querySelectorAll('[data-rename]').forEach(inp=>{
+      inp.onchange=async()=>{ try{ await api('/api/pessoas/rename',{method:'POST',body:JSON.stringify({id:inp.dataset.rename,name:inp.value})}); }catch(e){} };
+      inp.onkeydown=e=>{ if(e.key==='Enter') inp.blur(); };
+    });
+    ul.querySelectorAll('[data-delp]').forEach(b=>{
+      b.onclick=async()=>{ if(!confirm(t.delPessoa)) return; try{ await api('/api/pessoas/remove',{method:'POST',body:JSON.stringify({id:b.dataset.delp})}); await loadPessoas(); }catch(e){} };
+    });
+  }catch(e){ ul.innerHTML=`<li class="empty" style="justify-content:center"><span class="msg err">${esc(t.err)}</span></li>`; }
+}
+async function addPessoa(){
+  const inp=document.getElementById('pplNewName'); const nm=inp.value.trim(); if(!nm) return;
+  try{ await api('/api/pessoas',{method:'POST',body:JSON.stringify({name:nm})}); inp.value=''; await loadPessoas(); }catch(e){ flash(d().err,true); }
+}
+document.getElementById('pplAddBtn').onclick=addPessoa;
+document.getElementById('pplNewName').addEventListener('keydown',e=>{ if(e.key==='Enter') addPessoa(); });
+
+/* ---------------- Início ---------------- */
+applyLang();
+showView('coletas');
+</script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+/* =========================================================================
+   estoque.css — tema visual IGUAL ao Estoque original (React/shadcn),
+   mas para as paginas em HTML/JS puro. Tokens tirados do build atual
+   (styles-oRw8Bpl1.css): tema claro, verde Re-Teck, fonte Inter.
+   ========================================================================= */
+:root {
+  --bg: #f3f4f6;
+  --card: #ffffff;
+  --fg: #111827;
+  --muted-fg: #6b7280;
+  --border: #e5e7eb;
+  --input-border: #e5e7eb;
+  --primary: #2d8a47;
+  --primary-fg: #ffffff;
+  --secondary: #e8f5e9;
+  --secondary-fg: #1a6b2e;
+  --destructive: #dc2626;
+  --radius: 10px;
+  /* status das posicoes */
+  --status-available: #4caf50;
+  --status-available-fg: #0f3d1c;
+  --status-occupied: #dc2626;
+  --status-occupied-fg: #ffffff;
+  --status-blocked: #f4d03f;
+  --status-blocked-fg: #4a3b00;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: Inter, 'Segoe UI', system-ui, -apple-system, Roboto, 'Noto Sans CJK TC', sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100vh;
+}
+
+/* ---- Layout: sidebar + conteudo (igual ao Estoque original) ---- */
+.app { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 240px; flex-shrink: 0; background: var(--card); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
+}
+.sidebar .brand { padding: 20px 18px 14px; border-bottom: 1px solid var(--border); }
+.sidebar .brand .name { font-size: 20px; font-weight: 800; color: var(--primary); letter-spacing: -.02em; }
+.sidebar .brand .sub { font-size: 12px; color: var(--muted-fg); margin-top: 2px; }
+.sidebar nav { padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; }
+.sidebar nav a {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px;
+  font-size: 14px; font-weight: 500; color: var(--sidebar-fg, #374151); text-decoration: none;
+}
+.sidebar nav a .ico { width: 18px; text-align: center; }
+.sidebar nav a:hover { background: #f3f4f6; }
+.sidebar nav a.active { background: var(--secondary); color: var(--secondary-fg); font-weight: 600; }
+.sidebar .foot { padding: 12px; border-top: 1px solid var(--border); }
+.sidebar .foot label { font-size: 12px; color: var(--muted-fg); margin-bottom: 6px; }
+.sidebar .foot select {
+  width: 100%; padding: 8px 10px; font: inherit; font-size: 14px; color: var(--fg);
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; outline: none;
+}
+.main { flex: 1; min-width: 0; padding: 24px 28px; }
+
+/* telas estreitas: sidebar vira topo */
+@media (max-width: 720px) {
+  .app { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: static; flex-direction: column; }
+  .sidebar nav { flex-direction: row; flex-wrap: wrap; }
+  .main { padding: 16px; }
+}
+
+/* ---- Cabecalho da pagina ---- */
+.page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
+.page-head h1 { font-size: 28px; font-weight: 700; letter-spacing: -.025em; color: var(--fg); }
+.page-head .subtitle { font-size: 14px; color: var(--muted-fg); margin-top: 4px; }
+
+/* ---- Seletor de idioma (canto superior direito, igual ao login) ---- */
+.lang-select {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 12px; font-size: 14px; color: var(--fg); cursor: pointer; box-shadow: var(--shadow);
+}
+.lang-select select { border: none; background: transparent; font: inherit; color: inherit; cursor: pointer; outline: none; }
+
+/* ---- Cartao branco ---- */
+.card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: var(--shadow); padding: 16px;
+}
+.card + .card, .stack > * + * { margin-top: 16px; }
+
+/* ---- Campos ---- */
+label { display: block; font-size: 14px; font-weight: 600; color: var(--fg); margin-bottom: 6px; }
+input[type=text], input[type=search] {
+  width: 100%; padding: 10px 12px; font-size: 15px; color: var(--fg);
+  background: var(--card); border: 1px solid var(--input-border); border-radius: 8px; outline: none;
+}
+input[type=text]:focus, input[type=search]:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(45,138,71,.15); }
+.input-row { display: flex; gap: 8px; }
+.input-row input { flex: 1; }
+
+/* ---- Botoes ---- */
+.btn { border: none; border-radius: 8px; padding: 10px 16px; font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn-primary { background: var(--primary); color: var(--primary-fg); }
+.btn-primary:hover { background: #256e39; }
+.btn-icon { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 0 16px; font-size: 18px; cursor: pointer; }
+
+/* ---- Badges (iguais aos do Estoque) ---- */
+.badge { display: inline-flex; align-items: center; border-radius: 9999px; padding: 2px 10px; font-size: 12px; font-weight: 600; line-height: 1.6; }
+.badge-outline { border: 1px solid var(--border); color: var(--fg); background: transparent; }
+.badge-secondary { background: var(--secondary); color: var(--secondary-fg); }
+.badge-mono { font-family: ui-monospace, Consolas, monospace; }
+
+/* ---- Texto auxiliar ---- */
+.count { font-size: 14px; font-weight: 600; color: var(--fg); }
+.muted { color: var(--muted-fg); font-size: 14px; }
+.msg { color: var(--muted-fg); padding: 24px 0; text-align: center; font-size: 14px; }
+.msg.err { color: var(--destructive); }
+.spinner { display: none; text-align: center; padding: 12px; color: var(--primary); }

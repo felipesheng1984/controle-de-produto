@@ -1,0 +1,77 @@
+========================================================================
+ CONTROLE DE PRODUTOS - Re-Teck Brasil
+========================================================================
+
+O QUE E
+  Tabela de coletas (estilo planilha). Cada linha tem colunas de TEXTO
+  (Gru, Cidade, Data) e colunas de "打勾" / checkbox (Memoria, CPU, Placa,
+  SFP, Outros...). Da para:
+   - ➕ Nova coleta  -> adicionar uma linha
+   - ➕ Coluna       -> abre uma janelinha: digite o nome e escolha o TIPO
+                        (botao ✓ Marcar / botao ✎ Texto), depois "Adicionar"
+   - clicar numa celula ✓ -> alterna marcado / vazio
+   - coluna de texto (✎) -> digita direto na celula (ex.: observacoes/备注)
+   - trocar tipo: clique no iconezinho ✓/✎ no CANTO SUP. ESQUERDO do cabecalho
+   - REORDENAR COLUNA: arraste o cabecalho para a esquerda/direita
+   - REORDENAR LINHA: arraste pelo punho ⠿ (na frente da linha) para cima/baixo
+   - renomear/excluir colunas; excluir linhas
+   - Empresa (公司) = 1a coluna, texto livre (de qual fabrica veio a coleta)
+   - Filtro na barra de cima: "Empresa" -> ver Todas ou so um公司
+     (ao criar coleta com um公司 filtrado, ela ja nasce com esse公司)
+   - Data = seletor de data (com ano); Pessoas (op) = clique na celula e marque
+     quem foi (pode varios); 📷 = ate 10 fotos por linha
+   - ⬇️ Excel        -> exporta tudo (✓ para marcadas, texto para colunas de texto)
+  Idiomas: Portugues / 中文 (canto superior direito). Salva automaticamente.
+
+  5 ABAS (menu da esquerda):
+   - 📋 Coletas       -> a tabela
+   - 📈 Analise       -> quantas coletas trouxeram cada item, agrupado POR EMPRESA
+                         (公司) ou POR GRU (botoes no topo). Compara as empresas/Grus.
+   - 📊 Estatisticas  -> nº de viagens por pessoa no ciclo (dia 16 -> dia 15 do
+                         mes seguinte); use ◀ ▶ para trocar de ciclo
+   - 📄 Relatorio     -> RELATORIO MENSAL pronto para a chefia (ciclo dia 16 -> 15).
+                         Use ◀ ▶ para trocar de ciclo. Traz: cabecalho Re-Teck,
+                         4 indicadores (coletas / empresas / pessoas / itens) com
+                         comparacao ▲▼ contra o ciclo anterior, tabelas com barras
+                         por EMPRESA, por GRU, por ITEM e por PESSOA, o detalhe das
+                         coletas e o campo de assinatura.
+                         Botao "🖨️ Exportar PDF" -> abre a impressao do navegador;
+                         escolha "Salvar como PDF" (A4 retrato). Sai so a folha do
+                         relatorio, sem o menu da esquerda.
+                         A caixinha "Incluir detalhe" liga/desliga a lista de coletas.
+   - 👥 Pessoas       -> cadastro do pessoal (op) usado nas coletas/estatisticas
+  Fotos ficam em:  %LOCALAPPDATA%\Re-Teck\ControleProdutos\photos\<id>\
+
+COMO ABRIR (duplo-clique) -- SEM janela preta
+  Duplo-clique em  "Controle de Produtos.vbs"
+    -> sobe o servidor ESCONDIDO (segundo plano) e abre so o navegador
+       em http://localhost:5007. Nao aparece nenhuma janela preta.
+    -> se ja estiver rodando, apenas abre o navegador (nao abre outro).
+  Para FECHAR de verdade (ou antes de atualizar o programa):
+    duplo-clique em  "Parar Controle de Produtos.vbs"  (nao mostra janela).
+  (Requisito: .NET 8 SDK instalado.)
+
+  Obs.: "Iniciar Controle de Produtos.bat" faz a mesma coisa MAS mostra a
+  janela preta (util so para ver mensagens/erros ao depurar).
+
+ARQUITETURA (igual ao Estoque)
+  - Backend: ASP.NET Core Minimal API, .NET 8, SQLite via EF Core.
+  - Frontend: HTML/JS puro em server-csharp\wwwroot (tema Re-Teck verde).
+
+ONDE FICAM OS DADOS
+  %LOCALAPPDATA%\Re-Teck\ControleProdutos\produtos.db
+  (fora da pasta do codigo -> sobrevive a atualizacoes do programa)
+
+ESTRUTURA
+  server-csharp\
+    Produtos.csproj      net8.0; EF Core Sqlite + ClosedXML
+    Program.cs           API (/api/state, /colunas, /coletas, /toggle, /report, /export)
+    Data\AppDbContext.cs modelos: colunas, coletas, checks
+    wwwroot\index.html   a tela (a grade)
+    wwwroot\produtos.css tema visual (copiado do Estoque)
+  Iniciar Controle de Produtos.bat   -> duplo-clique para abrir
+
+COMPILAR
+  cd server-csharp
+  dotnet build -c Release
+========================================================================
