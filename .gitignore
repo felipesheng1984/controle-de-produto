@@ -1,0 +1,13 @@
+# Arquivos compilados do .NET (o programa recria sozinho com "dotnet build")
+bin/
+obj/
+
+# Arquivos locais do Visual Studio / VS Code
+.vs/
+*.user
+*.suo
+
+# Banco de dados e fotos locais (os dados reais ficam em %LOCALAPPDATA%)
+*.db
+*.db-shm
+*.db-wal
